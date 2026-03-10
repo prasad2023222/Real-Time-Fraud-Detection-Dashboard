@@ -3,17 +3,18 @@ import pandas as pd
 import plotly.express as px
 from sqlalchemy import create_engine
 from datetime import datetime
-
-# ---------- DB CONFIG ----------
 import os
 from dotenv import load_dotenv
 
+from main_loader import load_model
+
+# ---------- DB CONFIG ----------
 load_dotenv()
-DB_URL=os.getenv("DB_URL")
+DB_URL = os.getenv("DB_URL")
 if not DB_URL:
     raise RuntimeError("DB_URL is not set")
 
-engine=create_engine(DB_URL)
+engine = create_engine(DB_URL)
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
@@ -147,6 +148,23 @@ st.markdown(
 def show_dashboard() -> None:
     st.markdown("## 💳 Real-Time Fraud Detection Dashboard")
     st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    pipeline = load_model()
+    metrics = pipeline.get("metrics", {})
+
+    if metrics:
+        st.subheader("Model Performance (validation set)")
+        mcol1, mcol2, mcol3, mcol4 = st.columns(4)
+        with mcol1:
+            st.metric("F1-Score", f"{metrics['f1_score']:.3f}")
+        with mcol2:
+            st.metric("Precision", f"{metrics['precision']:.3f}")
+        with mcol3:
+            st.metric("Recall", f"{metrics['recall']:.3f}")
+        with mcol4:
+            st.metric("ROC AUC", f"{metrics['roc_auc']:.3f}")
+    else:
+        st.info("No model metrics found in pipeline. Re‑train and save metrics into the pickle.")
 
     query = "SELECT * FROM transactions ORDER BY created_at DESC"
     df = pd.read_sql(query, engine)
