@@ -72,3 +72,8 @@ def predict_fraud(transaction: TranscationInput,request=Request,_:None=Depends(v
     except Exception as e:
         logger.exception("request_id=%s Prediction error:",request_id)
         raise HTTPException(status_code=500, detail="Prediction failed")
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
