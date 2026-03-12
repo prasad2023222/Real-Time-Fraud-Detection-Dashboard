@@ -1,4 +1,3 @@
-from altair.utils.core import R
 from fastapi import FastAPI, HTTPException
 from app.schemas import TranscationInput
 from app.main_loader import load_model
