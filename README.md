@@ -24,8 +24,6 @@ Real-Time Fraud Detection Dashboard/
 │  ├─ dashboard.py           # Streamlit dashboard (monitoring + KPIs)
 │  ├─ transaction_checker.py # Streamlit helper to send test transactions to the API
 │  └─ test_transcation.py    # Basic tests / experimentation around transactions
-├─ fraud_final_model_complete.pkl  # Serialized ML pipeline (primary model)
-├─ fraud_model_complete.pkl        # Alternate / earlier model version
 ├─ Business_Value.md         # Business impact narrative (for recruiters/stakeholders)
 ├─ requirements.txt          # Python dependencies
 ├─ Dockerfile                # Container image for the FastAPI service
