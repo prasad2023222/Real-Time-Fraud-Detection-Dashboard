@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 
 from main_loader import load_model
+from transaction_checker import render_transaction_checker
 
 # ---------- DB CONFIG ----------
 load_dotenv()
@@ -149,83 +150,89 @@ def show_dashboard() -> None:
     st.markdown("## 💳 Real-Time Fraud Detection Dashboard")
     st.caption(f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    pipeline = load_model()
-    metrics = pipeline.get("metrics", {})
+    tab_monitor, tab_check = st.tabs(["📈 Monitor", "🧪 Check a transaction"])
 
-    if metrics:
-        st.subheader("Model Performance (validation set)")
-        mcol1, mcol2, mcol3, mcol4 = st.columns(4)
-        with mcol1:
-            st.metric("F1-Score", f"{metrics['f1_score']:.3f}")
-        with mcol2:
-            st.metric("Precision", f"{metrics['precision']:.3f}")
-        with mcol3:
-            st.metric("Recall", f"{metrics['recall']:.3f}")
-        with mcol4:
-            st.metric("ROC AUC", f"{metrics['roc_auc']:.3f}")
-    else:
-        st.info("No model metrics found in pipeline. Re‑train and save metrics into the pickle.")
+    with tab_check:
+        render_transaction_checker()
 
-    query = "SELECT * FROM transactions ORDER BY created_at DESC"
-    df = pd.read_sql(query, engine)
+    with tab_monitor:
+        pipeline = load_model()
+        metrics = pipeline.get("metrics", {})
 
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    total = len(df)
-    fraud_count = int(df["fraud_prediction"].sum()) if "fraud_prediction" in df.columns else 0
-    fraud_rate = (fraud_count / total * 100) if total else 0
-    normal_count = total - fraud_count
+        if metrics:
+            st.subheader("Model Performance (validation set)")
+            mcol1, mcol2, mcol3, mcol4 = st.columns(4)
+            with mcol1:
+                st.metric("F1-Score", f"{metrics['f1_score']:.3f}")
+            with mcol2:
+                st.metric("Precision", f"{metrics['precision']:.3f}")
+            with mcol3:
+                st.metric("Recall", f"{metrics['recall']:.3f}")
+            with mcol4:
+                st.metric("ROC AUC", f"{metrics['roc_auc']:.3f}")
+        else:
+            st.info("No model metrics found in pipeline. Re‑train and save metrics into the pickle.")
 
-    with col1:
-        st.metric("Total Transactions", total)
-    with col2:
-        st.metric("Fraud", fraud_count)
-    with col3:
-        st.metric("Normal", normal_count)
-    with col4:
-        st.metric("Fraud Rate %", f"{fraud_rate:.1f}%")
+        query = "SELECT * FROM transactions ORDER BY created_at DESC"
+        df = pd.read_sql(query, engine)
 
-    # Alerts
-    if total and fraud_rate > 10:
-        st.error("⚠️ Fraud rate is above 10%. Review recent activity.")
-    elif total and fraud_rate > 5:
-        st.warning("Fraud rate is elevated. Monitor transactions.")
+        # KPIs
+        col1, col2, col3, col4 = st.columns(4)
+        total = len(df)
+        fraud_count = int(df["fraud_prediction"].sum()) if "fraud_prediction" in df.columns else 0
+        fraud_rate = (fraud_count / total * 100) if total else 0
+        normal_count = total - fraud_count
 
-    # Charts
-    chart_col1, chart_col2 = st.columns(2)
+        with col1:
+            st.metric("Total Transactions", total)
+        with col2:
+            st.metric("Fraud", fraud_count)
+        with col3:
+            st.metric("Normal", normal_count)
+        with col4:
+            st.metric("Fraud Rate %", f"{fraud_rate:.1f}%")
 
-    with chart_col1:
-        st.subheader("Fraud vs Normal")
-        if "fraud_prediction" in df.columns:
-            counts = df["fraud_prediction"].value_counts()
-            fig_pie = px.pie(
-                values=counts.values,
-                names=["Normal" if k == 0 else "Fraud" for k in counts.index],
-                color_discrete_sequence=["#22c55e", "#ef4444"],
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
+        # Alerts
+        if total and fraud_rate > 10:
+            st.error("⚠️ Fraud rate is above 10%. Review recent activity.")
+        elif total and fraud_rate > 5:
+            st.warning("Fraud rate is elevated. Monitor transactions.")
 
-    with chart_col2:
-        st.subheader("Fraud by State")
-        if "state" in df.columns and "fraud_prediction" in df.columns:
-            fraud_by_state = df.groupby("state")["fraud_prediction"].sum().reset_index()
-            fraud_by_state.columns = ["state", "fraud_count"]
-            fig_bar = px.bar(
-                fraud_by_state,
-                x="state",
-                y="fraud_count",
-                color="fraud_count",
-                color_continuous_scale="Reds",
-            )
-            st.plotly_chart(fig_bar, use_container_width=True)
+        # Charts
+        chart_col1, chart_col2 = st.columns(2)
 
-    st.subheader("Fraud Probability Distribution")
-    if "fraud_probability" in df.columns:
-        fig_hist = px.histogram(df, x="fraud_probability", nbins=30)
-        st.plotly_chart(fig_hist, use_container_width=True)
+        with chart_col1:
+            st.subheader("Fraud vs Normal")
+            if "fraud_prediction" in df.columns:
+                counts = df["fraud_prediction"].value_counts()
+                fig_pie = px.pie(
+                    values=counts.values,
+                    names=["Normal" if k == 0 else "Fraud" for k in counts.index],
+                    color_discrete_sequence=["#22c55e", "#ef4444"],
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
 
-    with st.expander("📋 Recent Transactions", expanded=False):
-        st.dataframe(df, use_container_width=True)
+        with chart_col2:
+            st.subheader("Fraud by State")
+            if "state" in df.columns and "fraud_prediction" in df.columns:
+                fraud_by_state = df.groupby("state")["fraud_prediction"].sum().reset_index()
+                fraud_by_state.columns = ["state", "fraud_count"]
+                fig_bar = px.bar(
+                    fraud_by_state,
+                    x="state",
+                    y="fraud_count",
+                    color="fraud_count",
+                    color_continuous_scale="Reds",
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+        st.subheader("Fraud Probability Distribution")
+        if "fraud_probability" in df.columns:
+            fig_hist = px.histogram(df, x="fraud_probability", nbins=30)
+            st.plotly_chart(fig_hist, use_container_width=True)
+
+        with st.expander("📋 Recent Transactions", expanded=False):
+            st.dataframe(df, use_container_width=True)
 
 # ---------- LANDING (HERO) VIEW ----------
 def show_landing() -> None:

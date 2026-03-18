@@ -6,6 +6,8 @@ uvicorn
 python-dotenv
 requests
 streamlit
+pydantic
+sqlalchemy
 
 
 

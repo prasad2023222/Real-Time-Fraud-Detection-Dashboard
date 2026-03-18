@@ -40,7 +40,7 @@ def health_check():
 def predict_fraud(transaction: TranscationInput,request=Request,_:None=Depends(verify_api_key)):
     request_id=str(uuid.uuid4())
     try:
-        logger.info("request_id=%s ip=%s playload=%s",request_id,request.clinet.host,transaction.dict())
+        logger.info("request_id=%s ip=%s playload=%s", request_id, request.client.host, transaction.dict())
 
 
         processed = preprocess_input(transaction.dict(), pipeline)
@@ -76,4 +76,4 @@ def predict_fraud(transaction: TranscationInput,request=Request,_:None=Depends(v
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
